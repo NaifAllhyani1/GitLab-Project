@@ -30,7 +30,7 @@ resource "azurerm_network_security_group" "gitlab" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    source_address_prefix      = "*"
+    source_address_prefix = var.ssh_allowed_ip
     destination_address_prefix = "*"
   }
 
@@ -42,7 +42,7 @@ resource "azurerm_network_security_group" "gitlab" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "80"
-    source_address_prefix      = "*"
+    source_address_prefix = var.web_allowed_ip
     destination_address_prefix = "*"
   }
 
@@ -54,7 +54,7 @@ resource "azurerm_network_security_group" "gitlab" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "2222"
-    source_address_prefix      = "*"
+    source_address_prefix = var.web_allowed_ip
     destination_address_prefix = "*"
   }
 
@@ -66,10 +66,10 @@ resource "azurerm_network_security_group" "gitlab" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "8501"
-    source_address_prefix      = "*"
+    source_address_prefix = var.web_allowed_ip
     destination_address_prefix = "*"
   }
-  
+
 }
 
 resource "azurerm_public_ip" "gitlab" {

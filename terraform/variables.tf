@@ -21,3 +21,15 @@ variable "admin_username" {
   type        = string
   default     = "azureuser"
 }
+
+variable "ssh_allowed_ip" {
+  description = "Source CIDR allowed to reach SSH (22). Use * for anywhere."
+  type        = string
+  default     = "*"
+}
+
+variable "web_allowed_ip" {
+  description = "Source CIDR allowed to reach GitLab (80), GitLab SSH (2222) and the app (8501). Use * for anywhere."
+  type        = string
+  default     = "*"
+}
