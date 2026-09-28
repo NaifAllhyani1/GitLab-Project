@@ -1,31 +1,45 @@
-# You can override the included template(s) by including variable overrides
-# SAST customization: https://docs.gitlab.com/user/application_security/sast/#available-cicd-variables
-# Secret Detection customization: https://docs.gitlab.com/user/application_security/secret_detection/pipeline/configure/
-# Dependency Scanning customization: https://docs.gitlab.com/user/application_security/dependency_scanning/dependency_scanning_sbom/#customizing-analyzer-behavior
-# Container Scanning customization: https://docs.gitlab.com/user/application_security/container_scanning/#customizing-analyzer-behavior
-# Note that environment variables can be set in several places
-# See https://docs.gitlab.com/ci/variables/#cicd-variable-precedence
 stages:
-- build
-- test
-- deploy
-- review
-- dast
-- staging
-- canary
-- production
-- incremental rollout 10%
-- incremental rollout 25%
-- incremental rollout 50%
-- incremental rollout 100%
-- performance
-- cleanup
-- secret-detection
-sast:
+  - test
+  - build
+  - deploy
+
+test:
   stage: test
-include:
-- template: Auto-DevOps.gitlab-ci.yml
-variables:
-  SECRET_DETECTION_ENABLED: 'true'
-secret_detection:
-  stage: secret-detection
+  image: python:3.12-slim
+  script:
+    - cd sample-app
+    - pip install --no-cache-dir -r requirements.txt
+    - pytest
+
+build:
+  stage: build
+  image: docker:27
+  script:
+    - |
+      docker build \
+        --build-arg APP_VERSION="$CI_PIPELINE_IID" \
+        --build-arg GIT_COMMIT="$CI_COMMIT_SHA" \
+        --build-arg GIT_BRANCH="$CI_COMMIT_REF_NAME" \
+        --build-arg BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        -t sample-app:latest \
+        -t sample-app:$CI_COMMIT_SHORT_SHA \
+        sample-app
+
+deploy:
+  stage: deploy
+  image: docker:27
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  script:
+    - docker rm -f sample-app || true
+    - docker run -d --name sample-app --restart unless-stopped -p 8501:8501 sample-app:latest
+    - |
+      for i in 1 2 3 4 5 6 7 8 9 10; do
+        if docker exec sample-app python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:8501/_stcore/health').read())"; then
+          echo healthy
+          exit 0
+        fi
+        sleep 3
+      done
+      docker logs sample-app
+      exit 1
